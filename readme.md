@@ -1,5 +1,20 @@
 # Dremio AI Demo Guide
 
+# Table of Contents
+
+  - [Step 1: Setup Environment](#step-1-setup-environment)
+  - [Step 2: Setup Dremio](#step-2-setup-dremio)
+    - [Adding an S3 Source](#adding-an-s3-source)
+    - [Creating Spaces](#creating-spaces)
+    - [Promoting CSV Files as Datasets](#promoting-csv-files-as-datasets)
+    - [Creating the Raw Layer](#creating-the-raw-layer)
+    - [Creating the Business Layer](#creating-the-business-layer)
+    - [Creating the Application Layer](#creating-the-application-layer)
+  - [Step 3: Running the AI Agent](#step-3-running-the-ai-agent)
+    - [Defining AI Agent Tools](#defining-ai-agent-tools)
+    - [Optimizing AI Queries](#optimizing-ai-queries)
+
+
 ## Step 1: Setup Environment
 
 - fork/clone the repo
