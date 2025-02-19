@@ -5,6 +5,7 @@
   - [Step 1: Setup Environment](#step-1-setup-environment)
   - [Step 2: Setup Dremio](#step-2-setup-dremio)
   - [Step 3: Running the AI Agent](#step-3-running-the-ai-agent)
+  - [Tear Down the Environment](#tear-down-the-environment)
 
 
 ## Step 1: Setup Environment
@@ -139,6 +140,13 @@ agent = initialize_agent(
 
 Now this is pulling the full `buiness.purchases` table from the database and returning it as a string. If the table gets too large, it will not fit it the AI Models context window so this is where we'd use more narrow views for specific questions and create additional tools that pull from those views so the AI agent can use the right tool for the right question.
 
+## Tear Down the Environment
+
+When done with the demo environment you clearn up the docker containers and volumtes with the command.
+
+```bash
+docker-compose down -v
+```
 
 # **Dremio AI Chat Tool Template Guide**
 
