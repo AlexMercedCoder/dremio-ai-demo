@@ -1,3 +1,138 @@
+# Dremio AI Demo Guide
+
+## Step 1: Setup Environment
+
+- fork/clone the repo
+- cd into the repo
+- create a virtual environment `python -m venv venv`
+- activate the virtual environment `source venv/bin/activate`
+- install the requirements `pip install -r requirements.txt`
+- start up Dremio & Minio with `docker-compose up`
+
+## Step 2: Setup Dremio
+
+- Go to localhost:9047
+- create a `username` and `password` and make sure to put them in your `.env`
+- add an s3 source with the follow details
+  - general
+    - name: `minio`
+    - access key: `admin`
+    - secret key: `password`
+    - encrypy connection: `false`
+  - Advanced Options
+    - Set `Compatibility Mode` to `true`
+    - root path: `/lakehouse`
+    - connection properties:
+      - `fs.s3a.path.style.access` = `true`
+      - `fs.s3a.endpoint` = `minio:9000`
+
+- Create 3 spaces named `raw`, `business`, and `application`
+
+- Go into your minio source and promote/format the 4 CSV files as datasets, make sure to check off the so it extracts the header
+
+- Let's create our `raw` layer representing views on the raw table, this enables us to easily move the table layer without having to rebuild our other layers.
+
+```sql
+-- CREATE OUR RAW LAYER
+CREATE VIEW raw.customers AS SELECT * FROM minio.sampledata."customers.csv";
+CREATE VIEW raw.products AS SELECT * FROM minio.sampledata."products.csv";
+CREATE VIEW raw.purchases AS SELECT * FROM minio.sampledata."purchases.csv";
+CREATE VIEW raw.store_locations AS SELECT * FROM minio.sampledata."store_locations.csv";
+```
+
+- Let's join our fact table `purchases` to our dimension tables `customers`, `products`, and `store_locations` to create our business layer representing our cleaned, modeled data.
+
+```sql
+-- Join Our Views for out Dimensional Model in the Business Layer
+CREATE VIEW business.purchases
+AS SELECT   p.purchase_id,
+            p.quantity,
+            p.invoiced,
+            p.paid,
+            c.customer_id,
+            c.first_name,
+            c.last_name,
+            c.address AS customer_address,
+            pr.product_id,
+            pr.product_name,
+            pr.price,
+            pr.category,
+            pr.description,
+            s.store_id,
+            s.address AS store_address,
+            s.city,
+            s.state,
+            s.county
+FROM        raw.purchases AS p
+LEFT JOIN   raw.customers AS c
+ON          p.customer_id = c.customer_id
+LEFT JOIN   raw.products AS pr
+ON          p.product_id = pr.product_id
+INNER JOIN  raw.store_locations AS s
+ON          p.store_id = s.store_id;
+```
+
+- Now we can create views from this data in our application layer for particular use cases like BI or in this case AI.
+
+```sql
+
+-- View of Purchases Invoiced but Not Yet Paid
+CREATE VIEW application.unpaid_invoices AS SELECT * FROM business.purchases where invoiced = True and paid = False
+
+-- VIEW of Purchases from Wisconsim
+CREATE VIEW application.wi_purchases AS SELECT * FROM business.purchases WHERE state = 'WI'
+
+```
+
+## Step 3: Running the AI Agent
+
+The code for the agent already exists in `app.py` so assuming you python environment with all dependencies installed is active you can run the agent by running `python app.py`.
+
+Then go to localhost:5000 in your browser and ask questions like "Do we have any unpaid purchases?" or "any purchases for Wisconsin?"
+
+This works because in the code we define 'tools'which are a function and description. The function describes the good to retrieve the data and description is a description of the tool that allows the AI agent to determine the context on when to use the tool.
+
+Here is the tool in `app.py`
+```python
+# Tool: Get Purchases Data
+def get_purchases(_input=None):
+    print("Fetching full customer list")
+    query = """SELECT * FROM business.purchases"""
+    
+    # Use toArrow() to get StreamBatchReader
+    reader = dremio.toArrow(query)
+
+    # Read all batches into an Arrow Table
+    table = reader.read_all()
+    
+    # Convert Arrow Table to a string representation
+    data_string = str(table)  # or table.format()
+
+    if data_string.strip():
+        return f"CUSTOMER LIST:\n{data_string}"
+    
+    return "No purchases found."
+
+get_purchases_tool = Tool(
+    name="get_purchases",
+    func=get_purchases,
+    description="Retrieves a list of purchases from the database."
+)
+
+# Initialize AI Agent with tools
+tools = [get_purchases_tool]
+agent = initialize_agent(
+    tools, 
+    chat_model, 
+    agent="chat-conversational-react-description", 
+    memory=memory, 
+    verbose=True
+)
+```
+
+Now this is pulling the full `buiness.purchases` table from the database and returning it as a string. If the table gets too large, it will not fit it the AI Models context window so this is where we'd use more narrow views for specific questions and create additional tools that pull from those views so the AI agent can use the right tool for the right question.
+
+
 # **Dremio AI Chat Tool Template Guide**
 
 ## Table of Contents
@@ -106,6 +241,7 @@ In `index.html` customize the colors in the css variables to your desired scheme
             --pre-bg: rgba(255, 255, 255, 0.1);
         }
 ```
+
 
 ### Creating Tools for the Agent
 

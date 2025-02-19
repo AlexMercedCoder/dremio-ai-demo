@@ -6,16 +6,18 @@ from langchain_openai import ChatOpenAI
 from langchain.agents import initialize_agent, Tool
 from langchain.schema import AIMessage, HumanMessage
 import os
+from utils import dremio_token
 
 # Load environment variables
 load_dotenv()
+
 
 # Flask setup with session handling
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY")
 
 # Dremio connection setup
-TOKEN = os.getenv("DREMIO_TOKEN")
+TOKEN = dremio_token()
 ARROW_ENDPOINT = os.getenv("DREMIO_ARROW_ENDPOINT")
 dremio = DremioConnection(TOKEN, ARROW_ENDPOINT)
 
@@ -26,10 +28,10 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 chat_model = ChatOpenAI(model_name="gpt-4o", openai_api_key=OPENAI_API_KEY)
 memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
 
-# Tool 1: Get Some Data from Dremio
-def get_customer_list(_input=None):
+# Tool: Get Purchases Data
+def get_purchases(_input=None):
     print("Fetching full customer list")
-    query = """SELECT DISTINCT id, customer FROM source.customers;"""
+    query = """SELECT * FROM business.purchases"""
     
     # Use toArrow() to get StreamBatchReader
     reader = dremio.toArrow(query)
@@ -43,45 +45,16 @@ def get_customer_list(_input=None):
     if data_string.strip():
         return f"CUSTOMER LIST:\n{data_string}"
     
-    return "No customers found."
+    return "No purchases found."
 
-get_customer_list_tool = Tool(
-    name="get_customer_list",
-    func=get_customer_list,
-    description="Retrieves a list of all customer names and IDs from the database."
-)
-
-# Tool 2: Get Customer Data
-def get_customer_data(customer_id: str):
-    print(f"Fetching data for customer ID {customer_id}")
-    query = f"""
-    SELECT * FROM source.customer_data 
-    WHERE company_id = '{customer_id}';
-    """
-    
-    # Use toArrow() to get StreamBatchReader
-    reader = dremio.toArrow(query)
-
-    # Read all batches into an Arrow Table
-    table = reader.read_all()
-    
-    # Convert Arrow Table to a string representation
-    data_string = str(table)
-
-    if data_string.strip():
-        print("Customer data retrieved.")
-        return data_string
-    
-    return "No data found for this customer."
-
-get_customer_data_tool = Tool(
-    name="get_customer_data",
-    func=get_customer_data,
-    description="Retrieves customer-specific data given a customer ID."
+get_purchases_tool = Tool(
+    name="get_purchases",
+    func=get_purchases,
+    description="Retrieves a list of purchases from the database."
 )
 
 # Initialize AI Agent with tools
-tools = [get_customer_list_tool, get_customer_data_tool]
+tools = [get_purchases_tool]
 agent = initialize_agent(
     tools, 
     chat_model, 
@@ -108,10 +81,8 @@ def index():
         # Build contextual prompt considering past conversations
         past_chat = "\n".join([f"You: {msg['question']}\nAI: {msg['answer']}" for msg in session["chat_history"]])
         full_prompt = f"""
-        You are a cheerful assistant for a sales agent looking to understand existing deals. 
-        - If a customer name is provided, ensure correct spelling by checking the customer list.
-        - Then retrieve their ID and fetch relevant customer data.
-        - Finally, answer the user's question in a helpful and engaging way.
+        
+        You are a helpful assistant, helping users answer questions about recent purchases. If needed, retrieve purchase data to answer the users questions.
 
         Here is the conversation so far:
         {past_chat}

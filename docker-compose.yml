@@ -1,0 +1,57 @@
+version: "3"
+
+services:
+  # Minio Storage Server
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    environment:
+      - MINIO_ROOT_USER=admin
+      - MINIO_ROOT_PASSWORD=password
+      - MINIO_DOMAIN=minio
+      - MINIO_REGION_NAME=us-east-1
+      - MINIO_REGION=us-east-1
+    networks:
+      dremio-laptop-lakehouse:
+    ports:
+      - 9001:9001
+      - 9000:9000
+    volumes:
+      - ./minio_data:/data
+      - ./sampledata:/sampledata
+    entrypoint: >
+      /bin/sh -c "
+      echo 'Starting MinIO server...' &&
+      minio server /data --console-address :9001 &
+
+      echo 'Waiting for MinIO to start...' &&
+      until curl --silent --fail http://minio:9000/minio/health/live; do sleep 2; done &&
+      
+      echo 'MinIO is running, configuring...' &&
+      mc alias set local http://minio:9000 admin password &&
+      if ! mc ls local/lakehouse > /dev/null 2>&1; then mc mb local/lakehouse; fi &&
+      mc cp --recursive /sampledata local/lakehouse &&
+      echo 'Buckets created and data loaded.'
+      && tail -f /dev/null"
+
+  # Dremio
+  dremio:
+    platform: linux/x86_64
+    image: dremio/dremio-oss:latest
+    ports:
+      - 9047:9047
+      - 31010:31010
+      - 32010:32010
+      - 45678:45678
+    container_name: dremio
+    environment:
+      - DREMIO_JAVA_SERVER_EXTRA_OPTS=-Dpaths.dist=file:///opt/dremio/data/dist
+    networks:
+      dremio-laptop-lakehouse:
+    depends_on:
+      - minio
+
+networks:
+  dremio-laptop-lakehouse:
+
+
