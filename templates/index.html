@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Agent Tool</title>
+    <style>
+        :root {
+            --background-gradient-start: #1e3c72;
+            --background-gradient-end: #2a5298;
+            --text-color: white;
+            --chat-container-bg: rgba(255, 255, 255, 0.1);
+            --chat-box-bg: rgba(255, 255, 255, 0.2);
+            --scrollbar-thumb: rgba(255, 255, 255, 0.5);
+            --scrollbar-track: rgba(255, 255, 255, 0.1);
+            --user-message-bg: rgba(173, 216, 230, 0.8);
+            --user-message-text: #004466;
+            --ai-message-bg: rgba(255, 255, 255, 0.8);
+            --ai-message-text: #003366;
+            --input-bg: white;
+            --button-bg: #00aaff;
+            --button-hover-bg: #0088cc;
+            --loading-text-color: white;
+            --pre-bg: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(to bottom, var(--background-gradient-start), var(--background-gradient-end));
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        h2 {
+            text-align: center;
+            font-size: 28px;
+            margin-top: 10px;
+        }
+
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            max-width: 600px;
+            margin: auto;
+            background: var(--chat-container-bg);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            height: 80vh;
+            overflow: hidden;
+        }
+
+        .chat-box {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            padding: 10px;
+            text-align: left;
+            border-radius: 10px;
+            background: var(--chat-box-bg);
+            scrollbar-width: thin;
+            scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+        }
+
+        .chat-box::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .chat-box::-webkit-scrollbar-thumb {
+            background: var(--scrollbar-thumb);
+            border-radius: 10px;
+        }
+
+        .chat-message {
+            padding: 10px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            max-width: 85%;
+            word-wrap: break-word;
+        }
+
+        .user-message {
+            background: var(--user-message-bg);
+            color: var(--user-message-text);
+            align-self: flex-end;
+            text-align: right;
+        }
+
+        .ai-message {
+            background: var(--ai-message-bg);
+            color: var(--ai-message-text);
+            align-self: flex-start;
+            text-align: left;
+        }
+
+        .chat-form {
+            display: flex;
+            gap: 10px;
+            padding-top: 10px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 12px;
+            border-radius: 20px;
+            border: none;
+            outline: none;
+            font-size: 16px;
+            background: var(--input-bg);
+        }
+
+        button {
+            background: var(--button-bg);
+            color: var(--text-color);
+            padding: 12px 18px;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.3s ease;
+        }
+
+        button:hover {
+            background: var(--button-hover-bg);
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            font-style: italic;
+            color: var(--loading-text-color);
+            margin-top: 10px;
+        }
+
+        pre {
+            background-color: var(--pre-bg);
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-family: monospace;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+    </style>
+
+    <script>
+        function showLoader() {
+            document.getElementById("loading").style.display = "block";
+        }
+
+        function scrollToBottom() {
+            var chatBox = document.getElementById("chat-box");
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        window.onload = function() {
+            scrollToBottom();
+        };
+    </script>
+</head>
+<body>
+
+    <h2>AI Agent Tool</h2>
+
+    <div class="chat-container">
+        <div class="chat-box" id="chat-box">
+            {% for chat in chat_history %}
+                <div class="chat-message user-message">
+                    <strong>You:</strong> {{ chat.question }}
+                </div>
+                <div class="chat-message ai-message">
+                    <strong>AI:</strong> <pre>{{ chat.answer }}</pre>
+                </div>
+            {% endfor %}
+        </div>
+
+        <form method="POST" class="chat-form" onsubmit="showLoader()">
+            <input type="text" name="question" placeholder="Ask a question..." required>
+            <button type="submit">Send</button>
+        </form>
+
+        <div id="loading" class="loading">AI is thinking...</div>
+    </div>
+
+</body>
+</html>
+
+
