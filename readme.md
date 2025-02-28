@@ -85,10 +85,10 @@ ON          p.store_id = s.store_id;
 ```sql
 
 -- View of Purchases Invoiced but Not Yet Paid
-CREATE VIEW application.unpaid_invoices AS SELECT * FROM business.purchases where invoiced = True and paid = False
+CREATE VIEW application.unpaid_invoices AS SELECT * FROM business.purchases where invoiced = True and paid = False;
 
 -- VIEW of Purchases from Wisconsim
-CREATE VIEW application.wi_purchases AS SELECT * FROM business.purchases WHERE state = 'WI'
+CREATE VIEW application.wi_purchases AS SELECT * FROM business.purchases WHERE state = 'WI';
 
 ```
 
