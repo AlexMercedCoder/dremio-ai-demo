@@ -9,7 +9,7 @@ import os
 from utils import dremio_token
 
 # Load environment variables
-load_dotenv()
+load_dotenv(dotenv_path=".env")
 
 
 # Flask setup with session handling
@@ -18,6 +18,7 @@ app.secret_key = os.getenv("SECRET_KEY")
 
 # Dremio connection setup
 TOKEN = dremio_token()
+print("TOKEN", TOKEN)
 ARROW_ENDPOINT = os.getenv("DREMIO_ARROW_ENDPOINT")
 dremio = DremioConnection(TOKEN, ARROW_ENDPOINT)
 

@@ -5,7 +5,7 @@ import os
 import sys
 
 # Load environment variables
-load_dotenv()
+load_dotenv(dotenv_path=".env")
 
 def dremio_token():
     """Retrieves a Dremio authentication token based on the environment setup."""
@@ -24,6 +24,7 @@ def dremio_token():
                 raise ValueError("Missing required environment variables for Dremio Software login.")
 
             payload = {"userName": username, "password": password}
+            print("PAYLOAD:",payload)
             token = get_token(uri=login_endpoint, payload=payload)
 
         else:
